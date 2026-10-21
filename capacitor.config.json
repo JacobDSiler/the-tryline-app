@@ -1,0 +1,8 @@
+{
+  "appId": "com.primemanagement.tryline",
+  "appName": "The Tryline",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

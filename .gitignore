@@ -1,0 +1,16 @@
+node_modules/
+www/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/*.jks
+android/app/*.keystore
+ios/App/Pods/
+ios/App/build/
+ios/App/App.xcarchive
+*.p12
+*.mobileprovision
+*.p8
+*.env
+.env
+*.log

@@ -1,0 +1,43 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build the release AAB and upload it to the Google Play internal testing track"
+  lane :deploy do
+    gradle(
+      task: "bundleRelease",
+      project_dir: "android/"
+    )
+    upload_to_play_store(
+      track: "internal",
+      aab: "android/app/build/outputs/bundle/release/app-release.aab",
+      json_key: ENV["PLAY_JSON_KEY_PATH"],
+      package_name: "com.primemanagement.tryline",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end
+
+platform :ios do
+  desc "Build the release IPA and upload it to TestFlight"
+  lane :deploy do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_content: ENV["ASC_KEY_CONTENT"],
+      is_key_content_base64: true,
+      in_house: false
+    )
+    build_app(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      export_method: "app-store",
+      output_directory: "ios/build"
+    )
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

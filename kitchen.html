@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Tryline — Kitchen Screen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ink:#16232f; --ink-soft:#4d5c68; --paper:#ffffff; --paper-dim:#eef1f4;
+    --metal:#14304a; --metal-2:#0d2136; --line:#dde3e8;
+    --copper:#d81f35; --copper-dark:#a8172a;
+    --green-bg:#e3f0e4; --green-tx:#1e5b2c; --green-bd:#4c8a53;
+    --amber-bg:#fdedd2; --amber-tx:#8a5a13; --amber-bd:#d98c1f;
+    --red-bg:#fbe1de; --red-tx:#9c2a20; --red-bd:#c0392b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--metal-2);color:var(--ink);font-family:'Work Sans',system-ui,sans-serif;}
+  .display{font-family:'Big Shoulders Display',system-ui,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:0.02em;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  .col-title{font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:0.06em;color:#e4dccb;}
+  .demo-nav{position:sticky;top:0;z-index:500;background:var(--metal);display:flex;gap:0;justify-content:center;font-size:13px;font-weight:700;}
+  .demo-nav a{color:#a9b8c4;padding:10px 16px;text-decoration:none;}
+  .demo-nav a.on{color:#fff;border-bottom:2px solid var(--copper);}
+  #root{min-height:calc(100vh - 40px);display:flex;flex-direction:column;}
+  .board{flex:1;display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:2px;background:var(--line);}
+  .col{background:#1c1a17;padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+  .card{border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,0.18);}
+  .eta-badge{border-radius:10px;padding:8px 12px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .pay-tag{border-radius:999px;padding:3px 11px;font-size:11.5px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;white-space:nowrap;}
+  .item-line{font-size:17px;font-weight:700;line-height:1.35;}
+  .requested{font-size:12.5px;color:var(--ink-soft);font-weight:600;}
+  .action-btn{border-radius:9px;padding:12px;font-size:15px;font-weight:800;letter-spacing:0.03em;width:100%;}
+  @media (max-width:900px){ .board{grid-template-columns:1fr;} .col{max-height:none;} }
+</style>
+<script src="themes.js"></script>
+</head>
+<body>
+
+<div class="demo-nav">
+  <a href="index.html">Customer App</a>
+  <a href="kitchen.html" class="on">Kitchen Screen</a>
+  <a href="specials.html">Post a Special</a>
+</div>
+
+<div id="root">
+  <div style="background:var(--metal);padding:20px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:10px;">
+    <div class="display" style="color:var(--paper);font-size:24px;">The Tryline — Kitchen Screen</div>
+    <div style="display:flex;align-items:center;gap:18px;">
+      <div id="clock" style="color:#a9b8c4;font-size:13px;font-weight:600;"></div>
+      <div id="pendingBadge" style="background:var(--copper);color:var(--paper);font-weight:800;font-size:13px;border-radius:8px;padding:6px 12px;"></div>
+    </div>
+  </div>
+  <div class="board">
+    <div class="col"><div class="col-title">New orders</div><div id="colNew" style="display:flex;flex-direction:column;gap:14px;"></div></div>
+    <div class="col"><div class="col-title">Preparing</div><div id="colPrep" style="display:flex;flex-direction:column;gap:14px;"></div></div>
+    <div class="col"><div class="col-title">Ready for collection</div><div id="colReady" style="display:flex;flex-direction:column;gap:14px;"></div></div>
+  </div>
+</div>
+
+<script>
+  function esc(s){ var d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
+
+  // Demo data: dueAt / readyAt are set relative to page-load time so the board shows a realistic
+  // mix of urgency straight away, and keeps counting down live like the real thing would.
+  var now0 = Date.now();
+  var min = 60000;
+  var orders = [
+    { number: "140", items: [{ qty: 2, name: "Bacon Roll" }, { qty: 2, name: "Filter Coffee" }], paid: true, col: "new", requested: "ASAP", dueAt: now0 - 2 * min },
+    { number: "143", items: [{ qty: 1, name: "Flat White" }, { qty: 1, name: "Toastie" }], paid: true, col: "new", requested: "15 min", dueAt: now0 + 3 * min },
+    { number: "144", items: [{ qty: 2, name: "Filter Coffee" }], paid: false, col: "new", requested: "30 min", dueAt: now0 + 18 * min },
+    { number: "141", items: [{ qty: 1, name: "Match Day Combo" }], paid: false, col: "prep", requested: "15 min", dueAt: now0 + 1 * min },
+    { number: "138", items: [{ qty: 1, name: "Sausage Roll" }, { qty: 1, name: "Hot Chocolate" }], paid: true, col: "prep", requested: "ASAP", dueAt: now0 - 1 * min },
+    { number: "137", items: [{ qty: 3, name: "Chips" }], paid: true, col: "ready", requested: "ASAP", readyAt: now0 - 3 * min },
+    { number: "135", items: [{ qty: 1, name: "Winter Warmer" }], paid: true, col: "ready", requested: "15 min", readyAt: now0 - 12 * min }
+  ];
+
+  var AMBER_SOON_MIN = 5;   // not-yet-ready order flips amber inside this window before due
+  var READY_GRACE_MIN = 8;  // ready order flips amber once it's sat this long uncollected
+
+  function urgency(o, now){
+    if (o.col === "ready") {
+      var waited = (now - o.readyAt) / min;
+      return waited > READY_GRACE_MIN ? "amber" : "green";
+    }
+    var remain = (o.dueAt - now) / min;
+    if (remain < 0) return "red";
+    if (remain <= AMBER_SOON_MIN) return "amber";
+    return "green";
+  }
+
+  function etaLabel(o, now){
+    if (o.col === "ready") {
+      var waited = Math.round((now - o.readyAt) / min);
+      return waited <= 0 ? "Ready just now" : "Ready " + waited + " min ago";
+    }
+    var remain = Math.round((o.dueAt - now) / min);
+    if (remain > 0) return "Due in " + remain + " min";
+    if (remain === 0) return "Due now";
+    return Math.abs(remain) + " min overdue";
+  }
+
+  var COLORS = {
+    green: { bg: "var(--green-bg)", tx: "var(--green-tx)" },
+    amber: { bg: "var(--amber-bg)", tx: "var(--amber-tx)" },
+    red:   { bg: "var(--red-bg)", tx: "var(--red-tx)" }
+  };
+
+  function itemsHtml(items){ return items.map(function(li){ return '<div class="item-line">'+li.qty+'× '+esc(li.name)+'</div>'; }).join(""); }
+  function payTag(paid){ return '<span class="pay-tag" style="background:'+(paid?"#e5efe6":"#fdeee2")+';color:'+(paid?"#345c39":"#a25a2e")+';">'+(paid?"Paid":"Pay at hatch")+'</span>'; }
+
+  function cardHtml(o, now, actionHtml){
+    var u = urgency(o, now);
+    var c = COLORS[u];
+    return '<div class="card">'
+      + '<div class="eta-badge" style="background:'+c.bg+';color:'+c.tx+';"><span>'+etaLabel(o, now)+'</span>'+payTag(o.paid)+'</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+        + '<div class="display" style="font-size:22px;">#'+o.number+'</div>'
+        + '<div class="requested">Customer asked for: '+o.requested+'</div></div>'
+      + '<div>'+itemsHtml(o.items)+'</div>'
+      + actionHtml + '</div>';
+  }
+
+  function sortByUrgency(list, key){ return list.slice().sort(function(a,b){ return a[key]-b[key]; }); }
+
+  function render(){
+    var now = Date.now();
+    document.getElementById("clock").textContent = "Now " + new Date(now).toLocaleTimeString("en-IE",{hour:"2-digit",minute:"2-digit"});
+    document.getElementById("pendingBadge").textContent = orders.filter(function(o){return o.col!=="ready";}).length + " waiting";
+
+    var newOrders = sortByUrgency(orders.filter(function(o){return o.col==="new";}), "dueAt");
+    document.getElementById("colNew").innerHTML = newOrders.map(function(o){
+      return cardHtml(o, now, '<button class="display action-btn" onclick="advance(\''+o.number+'\')" style="background:var(--metal);color:var(--paper);">Start preparing →</button>');
+    }).join("") || '<div style="color:#a9b8c4;font-size:13px;font-style:italic;">Nothing new right now.</div>';
+
+    var prepOrders = sortByUrgency(orders.filter(function(o){return o.col==="prep";}), "dueAt");
+    document.getElementById("colPrep").innerHTML = prepOrders.map(function(o){
+      return cardHtml(o, now, '<button class="display action-btn" onclick="advance(\''+o.number+'\')" style="background:var(--green-tx);color:#fff;">Mark ready →</button>');
+    }).join("") || '<div style="color:#a9b8c4;font-size:13px;font-style:italic;">Nothing in progress.</div>';
+
+    var readyOrders = sortByUrgency(orders.filter(function(o){return o.col==="ready";}), "readyAt");
+    document.getElementById("colReady").innerHTML = readyOrders.length
+      ? readyOrders.map(function(o){ return cardHtml(o, now, '<div style="font-size:12.5px;font-weight:700;color:var(--ink-soft);">Handed over when collected</div>'); }).join("")
+      : '<div style="color:#a9b8c4;font-size:13px;font-style:italic;">Nothing waiting right now.</div>';
+  }
+  window.advance = function(number){
+    var next = { new: "prep", prep: "ready" };
+    orders = orders.map(function(o){
+      if (o.number !== number) return o;
+      var upd = Object.assign({}, o, { col: next[o.col] });
+      if (upd.col === "ready") upd.readyAt = Date.now();
+      return upd;
+    });
+    render();
+  };
+  render();
+  setInterval(render, 15000); // live countdown: colours and sort order shift on their own as time passes
+</script>
+
+<script defer src="markup-overlay.js?board=the-tryline&frame=full&root=%23root"></script>
+<script>
+(function(){
+  function dim(){
+    var b=document.querySelector('button.cpmk-ui');
+    if(!b || b.textContent.indexOf('Markup')<0) return;
+    b.style.opacity='0.5'; b.style.padding='7px 12px'; b.style.fontSize='12px'; b.style.boxShadow='0 2px 8px #0003';
+    b.addEventListener('pointerenter',function(){b.style.opacity='1';});
+    b.addEventListener('pointerleave',function(){b.style.opacity='0.5';});
+  }
+  var iv=setInterval(function(){ if(document.querySelector('button.cpmk-ui')){ dim(); clearInterval(iv); } }, 200);
+})();
+</script>
+</body>
+</html>

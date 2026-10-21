@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Tryline — Post a Special</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Work+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ink:#16232f; --ink-soft:#4d5c68; --paper:#ffffff; --paper-dim:#eef1f4;
+    --metal:#14304a; --line:#dde3e8; --copper:#d81f35; --copper-dark:#a8172a; --ok:#4c7a53;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:#e9edf1;color:var(--ink);font-family:'Work Sans',system-ui,sans-serif;}
+  .display{font-family:'Big Shoulders Display',system-ui,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:0.02em;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  input,textarea{font-family:inherit;font-size:14px;border-radius:10px;border:1.5px solid var(--line);padding:11px 13px;width:100%;}
+  label{font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);display:block;margin-bottom:6px;}
+  .check{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;width:100%;text-align:left;}
+  .demo-nav{position:sticky;top:0;z-index:500;background:var(--metal);display:flex;gap:0;justify-content:center;font-size:13px;font-weight:700;}
+  .demo-nav a{color:#a9b8c4;padding:10px 16px;text-decoration:none;}
+  .demo-nav a.on{color:#fff;border-bottom:2px solid var(--copper);}
+  #root{width:100%;max-width:860px;margin:24px auto 40px;background:var(--paper);display:flex;overflow:hidden;border-radius:14px;box-shadow:0 0 0 1px var(--line);}
+  .panel-preview{width:320px;flex-shrink:0;}
+  @media (max-width:720px){
+    #root{flex-direction:column;max-width:100%;margin:0;border-radius:0;box-shadow:none;}
+    .panel-preview{width:100%;}
+  }
+</style>
+<script src="themes.js"></script>
+</head>
+<body>
+
+<div class="demo-nav">
+  <a href="index.html">Customer App</a>
+  <a href="kitchen.html">Kitchen Screen</a>
+  <a href="specials.html" class="on">Post a Special</a>
+</div>
+
+<div id="root">
+  <div style="flex:1;padding:28px 30px;display:flex;flex-direction:column;gap:18px;border-right:1.5px solid var(--line);">
+    <div>
+      <div class="display" style="font-size:22px;">Post a special</div>
+      <div style="color:var(--ink-soft);font-size:13px;">Goes to the app instantly — and anywhere else you switch on below.</div>
+    </div>
+    <div><label>Special name</label><input type="text" value="Match Day Combo" readonly /></div>
+    <div><label>Short description</label><textarea rows="2" readonly>Bacon roll + filter coffee, today only — €7.50</textarea></div>
+    <div style="display:flex;gap:12px;">
+      <div style="flex:1;"><label>Price</label><input type="text" value="€7.50" readonly /></div>
+      <div style="flex:1;"><label>Available</label><input type="text" value="Sat, until sold out" readonly /></div>
+    </div>
+    <div>
+      <label style="margin-bottom:10px;">Where should this show up?</label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="check"><input type="checkbox" checked disabled style="width:18px;height:18px;flex-shrink:0;" /><span style="font-weight:600;font-size:13.5px;">In the ordering app &amp; specials tab</span></div>
+        <button class="check" id="calBtn" onclick="toggle('calendar')"><input type="checkbox" id="calChk" checked readonly style="width:18px;height:18px;flex-shrink:0;pointer-events:none;" /><span style="font-weight:600;font-size:13.5px;flex:1;">Push to the Mullingar RFC website calendar</span></button>
+        <button class="check" id="socBtn" onclick="toggle('social')"><input type="checkbox" id="socChk" readonly style="width:18px;height:18px;flex-shrink:0;pointer-events:none;" /><span style="font-weight:600;font-size:13.5px;flex:1;">Share as a social-ready image</span></button>
+      </div>
+    </div>
+    <div id="formStep">
+      <button class="display" onclick="publish()" style="background:var(--copper);color:var(--paper);border-radius:10px;padding:15px;font-size:15px;letter-spacing:0.03em;width:100%;">Publish special</button>
+    </div>
+    <div id="doneStep" style="display:none;flex-direction:column;gap:10px;">
+      <div id="doneMsg" style="background:#e5efe6;border:1.5px solid var(--ok);color:#345c39;border-radius:10px;padding:14px;font-weight:700;font-size:14px;"></div>
+      <button onclick="again()" style="background:none;color:var(--ink-soft);font-weight:600;font-size:13px;align-self:flex-start;">Post another</button>
+    </div>
+  </div>
+
+  <div class="panel-preview" style="background:var(--metal);padding:28px 24px;display:flex;flex-direction:column;gap:16px;">
+    <div class="display" style="color:#a9b8c4;font-size:13px;">Live preview — customer app</div>
+    <div style="background:var(--copper);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;">
+      <div class="display" style="color:#fff;font-size:11px;letter-spacing:0.08em;">★ Today's special</div>
+      <div class="display" style="color:#fff;font-size:19px;">Match Day Combo</div>
+      <div style="color:#f4e3e6;font-size:12.5px;">Bacon roll + filter coffee, today only</div>
+      <div style="color:#fff;font-weight:800;font-size:16px;">€7.50</div>
+    </div>
+    <div id="calPreview" style="background:#0d2136;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;">
+      <div style="color:#a9b8c4;font-size:11px;font-weight:700;text-transform:uppercase;">mullingarrfc.ie · calendar</div>
+      <div style="color:#eef1f4;font-weight:700;font-size:13.5px;">Sat — Match Day Combo at the coffee hatch</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var state = { calendar: true, social: false };
+  function toggle(k){ state[k] = !state[k]; render(); }
+  function render(){
+    document.getElementById("calChk").checked = state.calendar;
+    document.getElementById("socChk").checked = state.social;
+    document.getElementById("calBtn").style.borderColor = state.calendar ? "var(--copper)" : "#e4dccb";
+    document.getElementById("socBtn").style.borderColor = state.social ? "var(--copper)" : "#e4dccb";
+    document.getElementById("calPreview").style.display = state.calendar ? "flex" : "none";
+  }
+  window.toggle = toggle;
+  window.publish = function(){
+    var targets = ["the app"];
+    if(state.calendar) targets.push("the RFC website calendar");
+    if(state.social) targets.push("a social share image");
+    document.getElementById("doneMsg").textContent = "✓ Published — live on " + targets.join(", ");
+    document.getElementById("formStep").style.display = "none";
+    document.getElementById("doneStep").style.display = "flex";
+  };
+  window.again = function(){
+    document.getElementById("formStep").style.display = "block";
+    document.getElementById("doneStep").style.display = "none";
+  };
+  render();
+</script>
+
+<script defer src="markup-overlay.js?board=the-tryline&frame=full&root=%23root"></script>
+<script>
+(function(){
+  function dim(){
+    var b=document.querySelector('button.cpmk-ui');
+    if(!b || b.textContent.indexOf('Markup')<0) return;
+    b.style.opacity='0.5'; b.style.padding='7px 12px'; b.style.fontSize='12px'; b.style.boxShadow='0 2px 8px #0003';
+    b.addEventListener('pointerenter',function(){b.style.opacity='1';});
+    b.addEventListener('pointerleave',function(){b.style.opacity='0.5';});
+  }
+  var iv=setInterval(function(){ if(document.querySelector('button.cpmk-ui')){ dim(); clearInterval(iv); } }, 200);
+})();
+</script>
+</body>
+</html>
