@@ -129,3 +129,33 @@ GitHub Actions then builds and uploads Android to the Play Console
 **internal testing** track and iOS to **TestFlight** automatically. Promote
 to production from each console once you're happy with a build — that step
 is deliberately manual so nothing goes live to real customers unreviewed.
+
+## 9. The watcher — auto-deploy on every change
+
+This project is registered with your central project watcher
+(`C:\dev\google-play-console-management\apps.json`, id
+`tryline-coffee-and-food`). Any time a file changes here (outside
+`www/`/`android`/`ios` build output), the watcher runs `deploy.cmd`, which:
+
+1. Refreshes `www/` from the root source files.
+2. Publishes `www/` straight to the live Netlify demo
+   (tryline-coffee-and-food.netlify.app) — using the `web-netlify.json`
+   sitting in this folder (gitignored; copied from the central one, with
+   this project's own site ID).
+3. Commits and pushes to GitHub if there's a real change outside `www/` —
+   that push is what makes GitHub Actions build the iOS/Android apps and
+   upload them to TestFlight / the Play Console internal track.
+
+So once step 1 (push this repo to GitHub) and the store secrets
+(steps 3–7) are done, the whole loop is: **edit a file here → save → within
+a few seconds it's live on Netlify, on GitHub, and a new build is on its
+way to TestFlight and Play's internal testing track.** Check
+`logs\deploy.log` here, or `C:\dev\google-play-console-management\logs\watcher.log`,
+if a run doesn't seem to have happened.
+
+Until the GitHub repo exists (step 1) and the store secrets are added
+(steps 3–7), the watcher will still deploy to Netlify fine, but the
+`git push` and the GitHub Actions store upload will fail — check
+`logs\deploy.log` for "git push FAILED" and the repo's Actions tab for
+build errors. Nothing here is silently broken; it's just waiting on those
+one-time account/setup steps.
