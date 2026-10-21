@@ -1,9 +1,14 @@
 name: Release to App Store & Play Store
 
-# Runs when you push a version tag (e.g. `git tag v1.0.0 && git push --tags`),
-# or any time from the Actions tab via "Run workflow".
+# Runs on every push to main (the watcher on Jacob's PC pushes here whenever
+# the project changes) - uploads straight to TestFlight and the Play Console
+# internal track, both private review-before-promote tracks, so nothing
+# reaches real customers without a manual promote step in each console.
+# Also runs on a version tag, or any time from the Actions tab.
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*.*.*"
   workflow_dispatch:
