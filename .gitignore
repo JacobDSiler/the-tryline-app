@@ -16,3 +16,4 @@ ios/App/App.xcarchive
 *.log
 web-netlify.json
 .netlify/
+logs/
