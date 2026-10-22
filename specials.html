@@ -4,30 +4,35 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>The Tryline — Post a Special</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Work+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap">
 <style>
   :root{
     --ink:#16232f; --ink-soft:#4d5c68; --paper:#ffffff; --paper-dim:#eef1f4;
     --metal:#14304a; --line:#dde3e8; --copper:#d81f35; --copper-dark:#a8172a; --ok:#4c7a53;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;background:#e9edf1;color:var(--ink);font-family:'Work Sans',system-ui,sans-serif;}
-  .display{font-family:'Big Shoulders Display',system-ui,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:0.02em;}
+  html,body{margin:0;background:#e9edf1;color:var(--ink);font-family:'Oswald',system-ui,sans-serif;}
+  .display{font-family:'Anton',system-ui,sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:0.02em;}
   button{font-family:inherit;cursor:pointer;border:none;}
   input,textarea{font-family:inherit;font-size:14px;border-radius:10px;border:1.5px solid var(--line);padding:11px 13px;width:100%;}
   label{font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);display:block;margin-bottom:6px;}
-  .check{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;width:100%;text-align:left;}
+  .check{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;width:100%;text-align:left;}
+  .check.on{border-color:var(--copper);background:#fdecee;}
   .demo-nav{position:sticky;top:0;z-index:500;background:var(--metal);display:flex;gap:0;justify-content:center;font-size:13px;font-weight:700;}
   .demo-nav a{color:#a9b8c4;padding:10px 16px;text-decoration:none;}
   .demo-nav a.on{color:#fff;border-bottom:2px solid var(--copper);}
-  #root{width:100%;max-width:860px;margin:24px auto 40px;background:var(--paper);display:flex;overflow:hidden;border-radius:14px;box-shadow:0 0 0 1px var(--line);}
+  #root{width:100%;max-width:960px;margin:24px auto 40px;background:var(--paper);display:flex;overflow:hidden;border-radius:14px;box-shadow:0 0 0 1px var(--line);}
   .panel-preview{width:320px;flex-shrink:0;}
-  @media (max-width:720px){
+  .live-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper-dim);border-radius:10px;padding:10px 12px;}
+  .live-row .end-btn{color:var(--copper-dark);font-weight:700;font-size:12px;}
+  @media (max-width:760px){
     #root{flex-direction:column;max-width:100%;margin:0;border-radius:0;box-shadow:none;}
     .panel-preview{width:100%;}
   }
 </style>
 <script src="themes.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -38,24 +43,20 @@
 </div>
 
 <div id="root">
-  <div style="flex:1;padding:28px 30px;display:flex;flex-direction:column;gap:18px;border-right:1.5px solid var(--line);">
+  <div style="flex:1;padding:28px 30px;display:flex;flex-direction:column;gap:16px;border-right:1.5px solid var(--line);">
     <div>
-      <div class="display" style="font-size:22px;">Post a special</div>
-      <div style="color:var(--ink-soft);font-size:13px;">Goes to the app instantly — and anywhere else you switch on below.</div>
+      <div class="display" style="font-size:24px;">Post a special</div>
+      <div style="color:var(--ink-soft);font-size:13px;">Goes live in the app instantly.</div>
     </div>
-    <div><label>Special name</label><input type="text" value="Match Day Combo" readonly /></div>
-    <div><label>Short description</label><textarea rows="2" readonly>Bacon roll + filter coffee, today only — €7.50</textarea></div>
+    <div><label>Special name</label><input type="text" id="fName" placeholder="Match Day Combo" /></div>
+    <div><label>Short description</label><textarea rows="2" id="fDesc" placeholder="Bacon roll + filter coffee, today only">​</textarea></div>
     <div style="display:flex;gap:12px;">
-      <div style="flex:1;"><label>Price</label><input type="text" value="€7.50" readonly /></div>
-      <div style="flex:1;"><label>Available</label><input type="text" value="Sat, until sold out" readonly /></div>
+      <div style="flex:1;"><label>Price (€)</label><input type="number" step="0.10" min="0" id="fPrice" placeholder="7.50" /></div>
+      <div style="flex:1;"><label>Available</label><input type="text" id="fAvail" placeholder="Sat, until sold out" /></div>
     </div>
     <div>
-      <label style="margin-bottom:10px;">Where should this show up?</label>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div class="check"><input type="checkbox" checked disabled style="width:18px;height:18px;flex-shrink:0;" /><span style="font-weight:600;font-size:13.5px;">In the ordering app &amp; specials tab</span></div>
-        <button class="check" id="calBtn" onclick="toggle('calendar')"><input type="checkbox" id="calChk" checked readonly style="width:18px;height:18px;flex-shrink:0;pointer-events:none;" /><span style="font-weight:600;font-size:13.5px;flex:1;">Push to the Mullingar RFC website calendar</span></button>
-        <button class="check" id="socBtn" onclick="toggle('social')"><input type="checkbox" id="socChk" readonly style="width:18px;height:18px;flex-shrink:0;pointer-events:none;" /><span style="font-weight:600;font-size:13.5px;flex:1;">Share as a social-ready image</span></button>
-      </div>
+      <label style="margin-bottom:10px;">Who should see this?</label>
+      <div id="audienceRow" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
     <div id="formStep">
       <button class="display" onclick="publish()" style="background:var(--copper);color:var(--paper);border-radius:10px;padding:15px;font-size:15px;letter-spacing:0.03em;width:100%;">Publish special</button>
@@ -64,47 +65,141 @@
       <div id="doneMsg" style="background:#e5efe6;border:1.5px solid var(--ok);color:#345c39;border-radius:10px;padding:14px;font-weight:700;font-size:14px;"></div>
       <button onclick="again()" style="background:none;color:var(--ink-soft);font-weight:600;font-size:13px;align-self:flex-start;">Post another</button>
     </div>
+
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">
+      <label style="margin-bottom:0;">Live right now</label>
+      <div id="liveList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
   </div>
 
   <div class="panel-preview" style="background:var(--metal);padding:28px 24px;display:flex;flex-direction:column;gap:16px;">
     <div class="display" style="color:#a9b8c4;font-size:13px;">Live preview — customer app</div>
-    <div style="background:var(--copper);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;">
+    <div id="previewCard" style="background:var(--copper);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;">
       <div class="display" style="color:#fff;font-size:11px;letter-spacing:0.08em;">★ Today's special</div>
-      <div class="display" style="color:#fff;font-size:19px;">Match Day Combo</div>
-      <div style="color:#f4e3e6;font-size:12.5px;">Bacon roll + filter coffee, today only</div>
-      <div style="color:#fff;font-weight:800;font-size:16px;">€7.50</div>
-    </div>
-    <div id="calPreview" style="background:#0d2136;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;">
-      <div style="color:#a9b8c4;font-size:11px;font-weight:700;text-transform:uppercase;">mullingarrfc.ie · calendar</div>
-      <div style="color:#eef1f4;font-weight:700;font-size:13.5px;">Sat — Match Day Combo at the coffee hatch</div>
+      <div class="display" style="color:#fff;font-size:19px;" id="pvName">Your special</div>
+      <div style="color:#f4e3e6;font-size:12.5px;" id="pvDesc">Short description shows here</div>
+      <div style="color:#fff;font-weight:800;font-size:16px;" id="pvPrice">€0.00</div>
     </div>
   </div>
 </div>
 
 <script>
-  var state = { calendar: true, social: false };
-  function toggle(k){ state[k] = !state[k]; render(); }
-  function render(){
-    document.getElementById("calChk").checked = state.calendar;
-    document.getElementById("socChk").checked = state.social;
-    document.getElementById("calBtn").style.borderColor = state.calendar ? "var(--copper)" : "#e4dccb";
-    document.getElementById("socBtn").style.borderColor = state.social ? "var(--copper)" : "#e4dccb";
-    document.getElementById("calPreview").style.display = state.calendar ? "flex" : "none";
+  // ---------- Firebase ----------
+  var firebaseConfig = {
+    apiKey: "AIzaSyAbc7L05f4q6GRD6IhMkMXQ2S50pPMrNcc",
+    authDomain: "prime-management-clients.firebaseapp.com",
+    projectId: "prime-management-clients",
+    storageBucket: "prime-management-clients.firebasestorage.app",
+    messagingSenderId: "704357986960",
+    appId: "1:704357986960:web:ea68af88543ac56fd3de15",
+    measurementId: "G-50Y0Q0QD8T"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+  var CLIENT = db.collection("clients").doc("tryline");
+
+  var AUDIENCES = [
+    { id: "everyone", label: "Everyone" },
+    { id: "player", label: "Players" },
+    { id: "coach", label: "Coaches" },
+    { id: "parent", label: "Parents / Guardians" },
+    { id: "supporter", label: "Supporters" }
+  ];
+  var audienceState = { everyone: true };
+
+  function renderAudience(){
+    document.getElementById("audienceRow").innerHTML = AUDIENCES.map(function(a){
+      var on = !!audienceState[a.id];
+      return '<button type="button" class="check '+(on?"on":"")+'" onclick="toggleAudience(\''+a.id+'\')">'
+        + '<span style="width:16px;height:16px;border-radius:4px;border:1.5px solid '+(on?"var(--copper)":"#c7c0ae")+';background:'+(on?"var(--copper)":"#fff")+';flex-shrink:0;"></span>'
+        + '<span style="font-weight:600;font-size:13.5px;flex:1;">'+a.label+'</span></button>';
+    }).join("");
   }
-  window.toggle = toggle;
-  window.publish = function(){
-    var targets = ["the app"];
-    if(state.calendar) targets.push("the RFC website calendar");
-    if(state.social) targets.push("a social share image");
-    document.getElementById("doneMsg").textContent = "✓ Published — live on " + targets.join(", ");
-    document.getElementById("formStep").style.display = "none";
-    document.getElementById("doneStep").style.display = "flex";
+  window.toggleAudience = function(id){
+    if(id==="everyone"){
+      audienceState = { everyone: !audienceState.everyone };
+    } else {
+      audienceState.everyone = false;
+      audienceState[id] = !audienceState[id];
+    }
+    renderAudience();
+  };
+  renderAudience();
+
+  function fields(){
+    return {
+      name: document.getElementById("fName").value.trim(),
+      desc: document.getElementById("fDesc").value.trim(),
+      price: parseFloat(document.getElementById("fPrice").value) || 0,
+      avail: document.getElementById("fAvail").value.trim()
+    };
+  }
+  function updatePreview(){
+    var f = fields();
+    document.getElementById("pvName").textContent = f.name || "Your special";
+    document.getElementById("pvDesc").textContent = f.desc || "Short description shows here";
+    document.getElementById("pvPrice").textContent = "€"+f.price.toFixed(2);
+  }
+  ["fName","fDesc","fPrice","fAvail"].forEach(function(id){
+    document.getElementById(id).addEventListener("input", updatePreview);
+  });
+
+  window.publish = async function(){
+    var f = fields();
+    if(!f.name){ alert("Give the special a name first."); return; }
+    var audience = audienceState.everyone ? [] : Object.keys(audienceState).filter(function(k){return audienceState[k];});
+    var btn = document.querySelector("#formStep button");
+    btn.disabled = true; btn.textContent = "Publishing…";
+    try {
+      await CLIENT.collection("specials").add({
+        name: f.name, desc: f.desc, price: f.price, availability: f.avail,
+        audience: audience, active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      var targets = audience.length ? audience.join(", ") : "everyone";
+      document.getElementById("doneMsg").textContent = "✓ Published — live in the app for " + targets;
+      document.getElementById("formStep").style.display = "none";
+      document.getElementById("doneStep").style.display = "flex";
+    } catch(err){
+      console.error(err);
+      alert("That didn't publish — check your connection and try again.");
+    } finally {
+      btn.disabled = false; btn.textContent = "Publish special";
+    }
   };
   window.again = function(){
+    document.getElementById("fName").value = "";
+    document.getElementById("fDesc").value = "";
+    document.getElementById("fPrice").value = "";
+    document.getElementById("fAvail").value = "";
+    audienceState = { everyone: true };
+    renderAudience();
+    updatePreview();
     document.getElementById("formStep").style.display = "block";
     document.getElementById("doneStep").style.display = "none";
   };
-  render();
+
+  // Live list of currently-active specials, with a one-tap way to retire one.
+  CLIENT.collection("specials").where("active","==",true).orderBy("createdAt","desc")
+    .onSnapshot(function(snap){
+      var list = snap.docs;
+      document.getElementById("liveList").innerHTML = list.length ? list.map(function(d){
+        var data = d.data();
+        var who = (data.audience && data.audience.length) ? data.audience.join(", ") : "everyone";
+        return '<div class="live-row"><div><div style="font-weight:700;font-size:13.5px;">'+ (data.name||"") +' — €'+Number(data.price||0).toFixed(2)+'</div>'
+          + '<div style="color:var(--ink-soft);font-size:11.5px;">for '+who+(data.availability?(" · "+data.availability):"")+'</div></div>'
+          + '<button class="end-btn" onclick="endSpecial(\''+d.id+'\')">End</button></div>';
+      }).join("") : '<div style="color:var(--ink-soft);font-size:12.5px;font-style:italic;">Nothing live right now.</div>';
+    }, function(err){ console.error("specials list error", err); });
+
+  window.endSpecial = function(id){
+    CLIENT.collection("specials").doc(id).update({ active: false }).catch(function(err){
+      console.error(err);
+      alert("Couldn't end that special — try again.");
+    });
+  };
+
+  updatePreview();
 </script>
 
 <script defer src="markup-overlay.js?board=the-tryline&frame=full&root=%23root"></script>

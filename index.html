@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>The Tryline — Order</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Work+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap">
 <style>
   :root{
     --ink:#16232f; --ink-soft:#4d5c68; --paper:#ffffff; --paper-dim:#eef1f4;
@@ -12,11 +12,12 @@
     --copper:#d81f35; --copper-dark:#a8172a; --ok:#4c7a53;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;background:#e9edf1;color:var(--ink);font-family:'Work Sans',system-ui,sans-serif;}
+  html,body{margin:0;background:#e9edf1;color:var(--ink);font-family:'Oswald',system-ui,sans-serif;}
   a{color:var(--copper);}
-  .display{font-family:'Big Shoulders Display',system-ui,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:0.02em;}
+  .display{font-family:'Anton',system-ui,sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:0.02em;}
   button{font-family:inherit;cursor:pointer;border:none;background:none;}
-  .btn-primary{background:var(--copper);color:var(--paper);border-radius:10px;padding:16px 20px;font-weight:700;font-size:16px;}
+  .btn-primary{background:var(--copper);color:var(--paper);border-radius:10px;padding:16px 20px;font-weight:600;font-size:16px;}
+  .btn-primary:disabled{opacity:0.55;cursor:default;}
   .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:14px 18px;font-weight:600;font-size:15px;}
   .pill{border-radius:999px;padding:8px 16px;font-weight:600;font-size:14px;border:1.5px solid var(--line);background:var(--paper);}
   .pill.active{background:var(--metal);color:var(--paper);border-color:var(--metal);}
@@ -29,8 +30,16 @@
     #root{max-width:100%;min-height:calc(100vh - 40px);margin:40px 0 0;border-radius:0;box-shadow:none;}
   }
   textarea{width:100%;min-height:56px;border-radius:10px;border:1.5px solid var(--line);padding:12px;font-family:inherit;font-size:13.5px;resize:none;}
+  input[type="number"]{width:100%;border-radius:10px;border:1.5px solid var(--line);padding:11px 13px;font-family:inherit;font-size:14px;}
+  .overlay{position:absolute;inset:0;background:rgba(13,33,54,0.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px;}
+  .role-card{background:#fff;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;max-width:320px;width:100%;}
+  .role-chip{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:600;font-size:14px;width:100%;text-align:left;}
+  .role-chip.active{border-color:var(--copper);background:#fdecee;}
+  .role-pin{position:absolute;top:14px;right:14px;z-index:40;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--metal);box-shadow:0 2px 6px rgba(0,0,0,0.15);}
 </style>
 <script src="themes.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -41,9 +50,10 @@
 </div>
 
 <div id="root">
+  <button class="role-pin" id="rolePin" onclick="openRolePicker()" title="Who's ordering?">👤</button>
   <div style="background:var(--metal);padding:22px 20px 18px;display:flex;flex-direction:column;gap:2px;flex-shrink:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div class="display" style="color:var(--paper);font-size:22px;line-height:1;">The Tryline</div>
+      <div class="display" style="color:var(--paper);font-size:24px;line-height:1;">The Tryline</div>
       <div style="width:34px;height:34px;border-radius:50%;background:var(--copper);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eef1f4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
       </div>
@@ -54,7 +64,58 @@
 </div>
 
 <script>
-  var MENU = {
+  // ---------- Firebase ----------
+  var firebaseConfig = {
+    apiKey: "AIzaSyAbc7L05f4q6GRD6IhMkMXQ2S50pPMrNcc",
+    authDomain: "prime-management-clients.firebaseapp.com",
+    projectId: "prime-management-clients",
+    storageBucket: "prime-management-clients.firebasestorage.app",
+    messagingSenderId: "704357986960",
+    appId: "1:704357986960:web:ea68af88543ac56fd3de15",
+    measurementId: "G-50Y0Q0QD8T"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+  var CLIENT = db.collection("clients").doc("tryline");
+
+  // ---------- Role (who's ordering) ----------
+  var ROLES = [
+    { id: "player", label: "Player" },
+    { id: "coach", label: "Coach" },
+    { id: "parent", label: "Parent / Guardian" },
+    { id: "supporter", label: "Supporter" },
+    { id: "staff", label: "Club staff" }
+  ];
+  function getRole(){ try { return localStorage.getItem("tryline_role") || ""; } catch(e){ return ""; } }
+  function setRole(r){ try { localStorage.setItem("tryline_role", r); } catch(e){} renderRolePin(); closeRolePicker(); renderScreen(); }
+  function renderRolePin(){
+    var r = getRole();
+    var found = ROLES.filter(function(x){return x.id===r;})[0];
+    document.getElementById("rolePin").textContent = found ? found.label[0] : "?";
+  }
+  window.openRolePicker = function(){
+    var chips = ROLES.map(function(r){
+      var on = getRole()===r.id;
+      return '<button class="role-chip '+(on?"active":"")+'" onclick="setRole(\''+r.id+'\')">'+r.label+'</button>';
+    }).join("");
+    var html = '<div class="overlay" id="roleOverlay"><div class="role-card">'
+      + '<div class="display" style="font-size:18px;">Who\'s ordering today?</div>'
+      + '<div style="color:var(--ink-soft);font-size:12.5px;">This just helps us show you the right specials — change it anytime.</div>'
+      + '<div style="display:flex;flex-direction:column;gap:8px;">'+chips+'</div>'
+      + '<button onclick="closeRolePicker()" style="align-self:center;color:var(--ink-soft);font-weight:600;font-size:12.5px;">Skip for now</button>'
+      + '</div></div>';
+    var div = document.createElement("div");
+    div.innerHTML = html;
+    document.getElementById("root").appendChild(div.firstChild);
+  };
+  window.closeRolePicker = function(){
+    var el = document.getElementById("roleOverlay");
+    if(el) el.remove();
+    try { if(!localStorage.getItem("tryline_role_seen")) localStorage.setItem("tryline_role_seen","1"); } catch(e){}
+  };
+
+  // ---------- Menu ----------
+  var BASE_MENU = {
     coffee: [
       { id: "flat-white", name: "Flat White", desc: "Double shot, silky micro-foam", price: 3.6, swatch: "#3f2a1d", icon: "cup" },
       { id: "filter", name: "Filter Coffee", desc: "Fresh brewed, ask for milk", price: 3.0, swatch: "#5a3826", icon: "cup" },
@@ -66,31 +127,48 @@
       { id: "sausage-roll", name: "Sausage Roll", desc: "Locally made, oven warm", price: 4.5, swatch: "#a25a2e", icon: "food" },
       { id: "chips", name: "Chips", desc: "Hand cut, salt & vinegar", price: 4.0, swatch: "#6b6b4f", icon: "food" },
       { id: "toastie", name: "Cheese Toastie", desc: "Ham & cheese or plain", price: 5.0, swatch: "#8a4a2e", icon: "food" }
-    ],
-    specials: [
-      { id: "matchday-combo", name: "Match Day Combo", desc: "Bacon roll + filter coffee", price: 7.5, swatch: "var(--copper)", icon: "star" },
-      { id: "hot-toddy", name: "Winter Warmer", desc: "Hot berry cordial, ask a parent!", price: 3.2, swatch: "var(--copper)", icon: "star" }
     ]
   };
+  // Specials now come live from Firestore (clients/tryline/specials, active:true),
+  // filtered to the customer's chosen role (or shown to everyone if untagged).
+  var liveSpecials = [];
+  function visibleSpecials(){
+    var role = getRole();
+    return liveSpecials.filter(function(s){
+      return !s.audience || s.audience.length===0 || s.audience.indexOf(role) > -1 || s.audience.indexOf("everyone") > -1;
+    });
+  }
+  function menuFor(cat){
+    if(cat==="specials") return visibleSpecials();
+    return BASE_MENU[cat];
+  }
   var ICONS = {
     cup: '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M6 2v2"/><path d="M10 2v2"/>',
     food: '<circle cx="12" cy="12" r="8"/><path d="M8 12h8"/>',
     star: '<polygon points="12 2 15 9 22 9 16.5 13.5 18.5 21 12 16.5 5.5 21 7.5 13.5 2 9 9 9 12 2"/>'
   };
   function icon(name){ return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#eef1f4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">'+ICONS[name]+'</svg>'; }
-  function money(n){ return "€"+n.toFixed(2); }
+  function money(n){ return "€"+Number(n||0).toFixed(2); }
   function esc(s){ var d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
 
-  var state = { category: "coffee", cart: {}, eta: "15", payMethod: "online", orderNumber: "142" };
+  var state = { category: "coffee", cart: {}, eta: "15", etaCustom: 45, payMethod: "online", orderNumber: null, placing: false };
 
+  function allMenuItems(){
+    return BASE_MENU.coffee.concat(BASE_MENU.food, liveSpecials);
+  }
   function cartArr(){
-    var all = MENU.coffee.concat(MENU.food, MENU.specials);
+    var all = allMenuItems();
     return Object.keys(state.cart).filter(function(id){return state.cart[id]>0;}).map(function(id){
       return { item: all.filter(function(m){return m.id===id;})[0], qty: state.cart[id] };
-    });
+    }).filter(function(l){ return !!l.item; });
   }
   function cartTotal(){ return cartArr().reduce(function(sum,l){return sum+l.item.price*l.qty;},0); }
   function cartCount(){ return cartArr().reduce(function(s,l){return s+l.qty;},0); }
+  function etaMinutes(){
+    if(state.eta==="asap") return 0;
+    if(state.eta==="custom") return Math.max(5, Math.min(120, parseInt(state.etaCustom,10)||45));
+    return parseInt(state.eta,10);
+  }
 
   // Virtual routing so the markup overlay treats each step as its own screen.
   function goto(path){ history.pushState({}, "", path); renderScreen(); window.scrollTo(0,0); }
@@ -101,7 +179,8 @@
     var catsHtml = cats.map(function(c){
       return '<button class="pill '+(state.category===c[0]?"active":"")+'" onclick="setCategory(\''+c[0]+'\')">'+c[1]+'</button>';
     }).join("");
-    var items = MENU[state.category].map(function(m){
+    var list = menuFor(state.category);
+    var items = list.length ? list.map(function(m){
       var qty = state.cart[m.id]||0;
       var qtyControls = qty>0
         ? '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
@@ -110,13 +189,15 @@
           + '<button onclick="changeQty(\''+m.id+'\',1)" style="width:28px;height:28px;border-radius:8px;background:var(--metal);border:none;font-weight:800;font-size:16px;color:var(--paper);">+</button></div>'
         : '<button onclick="changeQty(\''+m.id+'\',1)" style="flex-shrink:0;width:36px;height:36px;border-radius:10px;background:var(--metal);color:var(--paper);font-weight:800;font-size:18px;">+</button>';
       return '<div style="display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px;">'
-        + '<div style="width:56px;height:56px;border-radius:10px;background:'+m.swatch+';flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+icon(m.icon)+'</div>'
+        + '<div style="width:56px;height:56px;border-radius:10px;background:'+(m.swatch||"var(--copper)")+';flex-shrink:0;display:flex;align-items:center;justify-content:center;">'+icon(m.icon||"star")+'</div>'
         + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">'
         + '<div style="font-weight:700;font-size:15px;">'+esc(m.name)+'</div>'
-        + '<div style="color:var(--ink-soft);font-size:12.5px;">'+esc(m.desc)+'</div>'
+        + '<div style="color:var(--ink-soft);font-size:12.5px;">'+esc(m.desc||"")+'</div>'
         + '<div style="font-weight:700;font-size:14px;margin-top:2px;">'+money(m.price)+'</div></div>'
         + qtyControls + '</div>';
-    }).join("");
+    }).join("") : (state.category==="specials"
+        ? '<div style="color:var(--ink-soft);font-size:13px;font-style:italic;padding:12px;">No specials live right now — check back soon.</div>'
+        : "");
     var count = cartCount();
     var cartBar = count>0
       ? '<div style="position:absolute;left:16px;right:16px;bottom:20px;"><button class="btn-primary" onclick="goto(\'/order/cart\')" style="width:100%;display:flex;align-items:center;justify-content:space-between;"><span>View order · '+count+' item'+(count===1?"":"s")+'</span><span>'+money(cartTotal())+'</span></button></div>'
@@ -133,23 +214,35 @@
         + '<div style="color:var(--ink-soft);font-size:12px;">'+money(l.item.price)+' each</div></div>'
         + '<div style="font-weight:700;font-size:14.5px;">'+money(l.item.price*l.qty)+'</div></div>';
     }).join("");
-    var etas = [["asap","ASAP"],["15","15 min"],["30","30 min"]];
+    var etas = [["asap","ASAP"],["15","15 min"],["30","30 min"],["45","45 min"],["60","1 hour"]];
     var etaHtml = etas.map(function(e){
-      return '<button class="pill '+(state.eta===e[0]?"active":"")+'" onclick="setEta(\''+e[0]+'\')" style="flex:1;text-align:center;">'+e[1]+'</button>';
-    }).join("");
+      return '<button class="pill '+(state.eta===e[0]?"active":"")+'" onclick="setEta(\''+e[0]+'\')" style="flex:1 1 30%;text-align:center;">'+e[1]+'</button>';
+    }).join("")
+      + '<button class="pill '+(state.eta==="custom"?"active":"")+'" onclick="setEta(\'custom\')" style="flex:1 1 30%;text-align:center;">On my way…</button>';
+    var customRow = state.eta==="custom"
+      ? '<div style="display:flex;align-items:center;gap:10px;"><input type="number" min="5" max="120" step="5" value="'+state.etaCustom+'" oninput="setEtaCustom(this.value)" /><span style="font-size:12.5px;color:var(--ink-soft);white-space:nowrap;">minutes till you arrive</span></div>'
+      : '';
     return '<div style="flex:1;overflow-y:auto;padding:18px 18px 20px;display:flex;flex-direction:column;gap:18px;">'
       + '<button onclick="goto(\'/order/menu\')" style="align-self:flex-start;background:none;color:var(--ink-soft);font-weight:600;font-size:13px;">← Add more items</button>'
       + '<div style="display:flex;flex-direction:column;gap:10px;">'+lines
-      + '<div style="display:flex;justify-content:space-between;padding-top:4px;"><div class="display" style="font-size:17px;">Total</div><div class="display" style="font-size:17px;">'+money(cartTotal())+'</div></div></div>'
-      + '<div style="display:flex;flex-direction:column;gap:10px;"><div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);">When will you collect it?</div>'
-      + '<div style="display:flex;gap:8px;">'+etaHtml+'</div>'
-      + '<div style="background:var(--paper-dim);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--ink-soft);">We\'ll fire your order to the hatch so it\'s hot and ready right on time.</div></div>'
-      + '<textarea placeholder="Notes for the kitchen (allergies, extra hot, etc.)"></textarea>'
+      + '<div style="display:flex;justify-content:space-between;padding-top:4px;"><div class="display" style="font-size:18px;">Total</div><div class="display" style="font-size:18px;">'+money(cartTotal())+'</div></div></div>'
+      + '<div style="display:flex;flex-direction:column;gap:10px;"><div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);">When should it be ready?</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+etaHtml+'</div>'
+      + customRow
+      + '<div style="background:var(--paper-dim);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--ink-soft);">Coming from further out? Tell us how long you\'ll be and we\'ll time it so it\'s hot and ready right when you walk up — not sitting cold waiting for you.</div></div>'
+      + '<textarea id="kitchenNotes" placeholder="Notes for the kitchen (allergies, extra hot, etc.)"></textarea>'
       + '<button class="btn-primary" onclick="goto(\'/order/payment\')" style="width:100%;">Continue to payment</button></div>';
   }
 
+  function etaLabelFor(mins){
+    if(mins<=0) return "as soon as it's ready";
+    if(mins<60) return "in about "+mins+" minutes";
+    if(mins===60) return "in about 1 hour";
+    return "in about "+(mins/60).toFixed(1).replace(".0","")+" hours";
+  }
+
   function renderPayment(){
-    var etaLabelMap = { asap: "as soon as it's ready", "15": "in about 15 minutes", "30": "in about 30 minutes" };
+    var mins = etaMinutes();
     function payRow(method, title, sub){
       var on = state.payMethod===method;
       return '<button onclick="setPay(\''+method+'\')" style="display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid '+(on?"var(--copper)":"#e4dccb")+';border-radius:12px;padding:14px;width:100%;">'
@@ -160,20 +253,20 @@
       + '<button onclick="goto(\'/order/cart\')" style="align-self:flex-start;background:none;color:var(--ink-soft);font-weight:600;font-size:13px;">← Back to order</button>'
       + '<div style="background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;">'
       + '<div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:var(--ink-soft);">Order ('+cartCount()+' item'+(cartCount()===1?"":"s")+')</span><span style="font-weight:700;">'+money(cartTotal())+'</span></div>'
-      + '<div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:var(--ink-soft);">Ready</span><span style="font-weight:700;">'+etaLabelMap[state.eta]+'</span></div></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:var(--ink-soft);">Ready</span><span style="font-weight:700;">'+etaLabelFor(mins)+'</span></div></div>'
       + '<div style="display:flex;flex-direction:column;gap:10px;"><div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);">Pay</div>'
       + payRow("online","Pay now by card","Apple Pay, Google Pay or card — nothing to hand over at the hatch")
       + payRow("counter","Pay at the hatch","Card or cash when you collect") + '</div>'
-      + '<button class="btn-primary" onclick="goto(\'/order/confirm\')" style="width:100%;">Place order · '+money(cartTotal())+'</button></div>';
+      + '<button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()" style="width:100%;" '+(state.placing?"disabled":"")+'>'+(state.placing?"Sending your order…":"Place order · "+money(cartTotal()))+'</button></div>';
   }
 
   function renderConfirm(){
-    var etaLabelMap = { asap: "as soon as it's ready", "15": "in about 15 minutes", "30": "in about 30 minutes" };
+    var mins = etaMinutes();
     var payStatus = state.payMethod==="online" ? "Paid online ✓" : "Pay "+money(cartTotal())+" at the hatch";
     return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;">'
       + '<div style="width:64px;height:64px;border-radius:50%;background:var(--ok);display:flex;align-items:center;justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#eef1f4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'
-      + '<div class="display" style="font-size:26px;">Order sent!</div>'
-      + '<div style="color:var(--ink-soft);font-size:14.5px;max-width:260px;">Order <strong style="color:var(--ink);">#'+state.orderNumber+'</strong> is on its way to the kitchen. We\'ll have it ready '+etaLabelMap[state.eta]+'.</div>'
+      + '<div class="display" style="font-size:28px;">Order sent!</div>'
+      + '<div style="color:var(--ink-soft);font-size:14.5px;max-width:260px;">Order <strong style="color:var(--ink);">#'+state.orderNumber+'</strong> is on its way to the kitchen. We\'ll have it ready '+etaLabelFor(mins)+'.</div>'
       + '<div style="background:var(--paper-dim);border-radius:12px;padding:14px 20px;font-weight:700;font-size:15px;">'+payStatus+'</div>'
       + '<button class="btn-ghost" onclick="newOrder()" style="margin-top:8px;">Start a new order</button></div>';
   }
@@ -181,9 +274,50 @@
   window.setCategory = function(c){ state.category=c; renderScreen(); };
   window.changeQty = function(id, d){ state.cart[id] = Math.max(0,(state.cart[id]||0)+d); renderScreen(); };
   window.setEta = function(e){ state.eta=e; renderScreen(); };
+  window.setEtaCustom = function(v){ state.etaCustom = v; };
   window.setPay = function(p){ state.payMethod=p; renderScreen(); };
   window.goto = goto;
-  window.newOrder = function(){ state.cart={}; goto("/order/menu"); };
+  window.newOrder = function(){ state.cart={}; state.orderNumber=null; goto("/order/menu"); };
+
+  window.placeOrder = async function(){
+    if(state.placing || cartCount()===0) return;
+    state.placing = true; renderScreen();
+    try{
+      var mins = etaMinutes();
+      var counterRef = CLIENT.collection("meta").doc("orderCounter");
+      var number = await db.runTransaction(async function(tx){
+        var snap = await tx.get(counterRef);
+        var next = ((snap.exists ? snap.data().next : 139) || 139) + 1;
+        tx.set(counterRef, { next: next }, { merge: true });
+        return next;
+      });
+      var notesEl = document.getElementById("kitchenNotes");
+      var orderDoc = {
+        number: String(number),
+        items: cartArr().map(function(l){ return { name: l.item.name, qty: l.qty, price: l.item.price }; }),
+        total: cartTotal(),
+        etaMinutes: mins,
+        etaLabel: etaLabelFor(mins),
+        payMethod: state.payMethod,
+        paid: state.payMethod === "online",
+        role: getRole() || null,
+        notes: notesEl ? notesEl.value.slice(0,300) : "",
+        status: "new",
+        dueAt: Date.now() + mins*60000,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await CLIENT.collection("orders").add(orderDoc);
+      state.orderNumber = String(number);
+      state.placing = false;
+      goto("/order/confirm");
+    } catch(err){
+      state.placing = false;
+      renderScreen();
+      alert("Sorry — that order didn't go through. Please check your connection and try again.");
+      console.error(err);
+    }
+  };
 
   function renderScreen(){
     var path = location.pathname.replace(/\/+$/,"") || "/";
@@ -194,7 +328,23 @@
     else el.innerHTML = renderMenu();
   }
   if(location.pathname.indexOf("/order/")===-1){ history.replaceState({}, "", "/order/menu"); }
+  renderRolePin();
   renderScreen();
+
+  // Live specials, filtered to the chosen role at render time.
+  CLIENT.collection("specials").where("active","==",true).orderBy("createdAt","desc")
+    .onSnapshot(function(snap){
+      liveSpecials = snap.docs.map(function(d){
+        var data = d.data();
+        return { id: d.id, name: data.name, desc: data.desc, price: data.price, audience: data.audience||[], swatch: "var(--copper)", icon: "star" };
+      });
+      renderScreen();
+    }, function(err){ console.error("specials listener error", err); });
+
+  // First visit: invite the customer to say who they are (skippable).
+  try {
+    if(!localStorage.getItem("tryline_role_seen")){ setTimeout(openRolePicker, 400); }
+  } catch(e){}
 </script>
 
 <script>
