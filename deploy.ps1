@@ -45,19 +45,31 @@ if ($haveCreds) {
   Log "No web-netlify.json credentials found - skipping Netlify deploy."
 }
 
-# 3) Commit + push -> triggers the GitHub Actions store pipeline
+# 3) Commit any pending changes, then push whenever local is ahead of origin
+#    (covers both "edited here" and "already committed elsewhere - e.g. by
+#    the linked chat - just never pushed") -> triggers the GitHub Actions
+#    store pipeline. Pushing is keyed off being ahead of origin, NOT off
+#    having something new to commit, so a commit made any other way still
+#    goes out on the very next tick.
 Log "Checking for changes to commit..."
 cmd /c "git add -A" 2>&1 | ForEach-Object { Log $_ }
 $status = cmd /c "git status --porcelain"
 if ($status) {
   $msg = "auto: sync " + (Get-Date -Format "yyyy-MM-dd HH:mm")
   cmd /c "git commit -m `"$msg`"" 2>&1 | ForEach-Object { Log $_ }
-  Log "Pushing to GitHub (triggers iOS/Android build + store upload)..."
+} else {
+  Log "Nothing new to commit."
+}
+
+cmd /c "git fetch origin main" 2>&1 | ForEach-Object { Log $_ }
+$ahead = (cmd /c "git rev-list --count origin/main..HEAD") -as [int]
+if ($ahead -gt 0) {
+  Log "Local is $ahead commit(s) ahead of origin/main - pushing..."
   cmd /c "git push origin main" 2>&1 | ForEach-Object { Log $_ }
   if ($LASTEXITCODE -eq 0) { Log "Pushed. GitHub Actions will build + upload to TestFlight / Play internal track." }
   else { Log "git push FAILED - check 'git remote -v' and that origin/main is set up (see SETUP.md step 1)." }
 } else {
-  Log "Nothing to commit (only www/ changed, which is gitignored) - Netlify is up to date; no native rebuild needed."
+  Log "Nothing to push - up to date with origin/main."
 }
 
 Log "=== deploy done ==="
