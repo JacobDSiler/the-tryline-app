@@ -115,18 +115,39 @@
   };
 
   // ---------- Menu ----------
+  // The real Tryline menu (transcribed from their signage), prices current as
+  // of 23 Oct 2026: Luke put every coffee/drink up 20c (cans included; matcha
+  // excluded, but it isn't on the menu here) — food prices are unchanged.
   var BASE_MENU = {
-    coffee: [
-      { id: "flat-white", name: "Flat White", desc: "Double shot, silky micro-foam", price: 3.6, swatch: "#3f2a1d", icon: "cup" },
-      { id: "filter", name: "Filter Coffee", desc: "Fresh brewed, ask for milk", price: 3.0, swatch: "#5a3826", icon: "cup" },
-      { id: "hot-choc", name: "Hot Chocolate", desc: "Real chocolate, whipped cream", price: 3.8, swatch: "#6b3a2a", icon: "cup" },
-      { id: "tea", name: "Tea", desc: "Barry's, served in a flask cup", price: 2.6, swatch: "#7a5a2e", icon: "cup" }
+    hot: [
+      { id: "latte", name: "Latte", price: 3.70, swatch: "#3f2a1d", icon: "cup" },
+      { id: "cappuccino", name: "Cappuccino", price: 3.70, swatch: "#4a3222", icon: "cup" },
+      { id: "americano", name: "Americano", price: 3.20, swatch: "#5a3826", icon: "cup" },
+      { id: "flat-white", name: "Flat White", price: 3.70, swatch: "#3f2a1d", icon: "cup" },
+      { id: "mocha", name: "Mocha", price: 3.90, swatch: "#6b3a2a", icon: "cup" },
+      { id: "espresso", name: "Espresso", price: 2.70, swatch: "#2e1d12", icon: "cup" },
+      { id: "double-espresso", name: "Double Espresso", price: 3.20, swatch: "#2e1d12", icon: "cup" },
+      { id: "hot-chocolate", name: "Hot Chocolate", price: 4.00, swatch: "#6b3a2a", icon: "cup" },
+      { id: "kidz-hot-chocolate", name: "Kidz Hot Chocolate", price: 3.00, swatch: "#8a4a2e", icon: "cup" },
+      { id: "babyccino", name: "Babyccino", price: 1.70, swatch: "#a25a2e", icon: "cup" },
+      { id: "tea", name: "Tea", desc: "Barry's", price: 2.20, swatch: "#7a5a2e", icon: "cup" }
+    ],
+    cold: [
+      { id: "iced-coffee", name: "Iced Coffee", price: 4.00, swatch: "#3a5f6b", icon: "cup" },
+      { id: "bottles", name: "Bottles", price: 3.00, swatch: "#2f4858", icon: "cup" },
+      { id: "cans", name: "Cans", price: 2.20, swatch: "#2f4858", icon: "cup" },
+      { id: "capri-sun", name: "Capri-Sun", price: 1.70, swatch: "#3a5f6b", icon: "cup" },
+      { id: "water", name: "Water", price: 2.00, swatch: "#4a7a8c", icon: "cup" },
+      { id: "monster", name: "Monster", price: 3.95, swatch: "#1f3a1f", icon: "cup" }
     ],
     food: [
-      { id: "bacon-roll", name: "Bacon Roll", desc: "Fresh bap, brown sauce on request", price: 5.5, swatch: "#8a4a2e", icon: "food" },
-      { id: "sausage-roll", name: "Sausage Roll", desc: "Locally made, oven warm", price: 4.5, swatch: "#a25a2e", icon: "food" },
-      { id: "chips", name: "Chips", desc: "Hand cut, salt & vinegar", price: 4.0, swatch: "#6b6b4f", icon: "food" },
-      { id: "toastie", name: "Cheese Toastie", desc: "Ham & cheese or plain", price: 5.0, swatch: "#8a4a2e", icon: "food" }
+      { id: "toastie", name: "Toastie", desc: "Ham & cheese or plain", price: 6.50, swatch: "#8a4a2e", icon: "food" },
+      { id: "sausage-rolls", name: "Sausage Rolls (4x)", price: 3.50, swatch: "#a25a2e", icon: "food" },
+      { id: "cookies", name: "Cookies", price: 2.00, swatch: "#8a6a2e", icon: "food" },
+      { id: "croissants", name: "Croissants", price: 2.30, swatch: "#b38b3f", icon: "food" },
+      { id: "bars", name: "Bars", price: 2.50, swatch: "#6b4a2e", icon: "food" },
+      { id: "crisps", name: "Crisps", desc: "Ask for flavours", price: 2.00, swatch: "#6b6b4f", icon: "food" },
+      { id: "sweets", name: "Sweets", desc: "Ask what's in stock", price: 2.00, swatch: "#6b6b4f", icon: "food" }
     ]
   };
   // Specials now come live from Firestore (clients/tryline/specials, active:true),
@@ -151,10 +172,10 @@
   function money(n){ return "€"+Number(n||0).toFixed(2); }
   function esc(s){ var d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
 
-  var state = { category: "coffee", cart: {}, eta: "15", etaCustom: 45, payMethod: "online", orderNumber: null, placing: false };
+  var state = { category: "hot", cart: {}, eta: "15", etaCustom: 45, payMethod: "online", orderNumber: null, placing: false };
 
   function allMenuItems(){
-    return BASE_MENU.coffee.concat(BASE_MENU.food, liveSpecials);
+    return BASE_MENU.hot.concat(BASE_MENU.cold, BASE_MENU.food, liveSpecials);
   }
   function cartArr(){
     var all = allMenuItems();
@@ -175,7 +196,7 @@
   window.addEventListener("popstate", renderScreen);
 
   function renderMenu(){
-    var cats = [["coffee","Coffee"],["food","Food"],["specials","★ Specials"]];
+    var cats = [["hot","Hot"],["cold","Cold"],["food","Food"],["specials","★ Specials"]];
     var catsHtml = cats.map(function(c){
       return '<button class="pill '+(state.category===c[0]?"active":"")+'" onclick="setCategory(\''+c[0]+'\')">'+c[1]+'</button>';
     }).join("");
